@@ -1,5 +1,7 @@
 # Demo script (reviewers)
 
+> **Looking for the rapid hosted flow?** See [`DEMO_SCRIPT_90S.md`](./DEMO_SCRIPT_90S.md) for the 90-second hosted Testnet walkthrough (zero local setup required).
+
 Use this after contract redeploy + backend + app are running.
 
 ## Prerequisites
