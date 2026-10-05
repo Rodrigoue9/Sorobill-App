@@ -8,7 +8,7 @@ import { WalletButton } from "@/components/wallet-button";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
-import { env } from "@/lib/env";
+import { canLiveCheckout, env } from "@/lib/env";
 import { mapApiPlan, type ApiPlan } from "@/lib/plan-mapper";
 import { validateApiPlan } from "@/lib/validate-api-plan";
 import { formatAssetAmount, formatInterval } from "@/lib/format";
@@ -17,19 +17,21 @@ import { useWalletStore } from "@/stores/wallet-store";
 import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 import { networkHint } from "@/lib/network-label";
 import { announce } from "@/lib/a11y";
+import { getExplorerUrl } from "@/lib/stellar";
 
 async function fetchPlan(id: string): Promise<ApiPlan> {
   if (env.app.useMock) {
+    // Matches on-chain Testnet plan 0 (XLM / monthly) when live checkout is enabled
     return {
       id,
       name: id.includes("2") ? "Pro" : "Starter",
       description: "Recurring payment settled on Stellar Soroban.",
       amount: id.includes("2") ? "29.99" : "9.99",
-      assetCode: "USDC",
+      assetCode: "XLM",
       interval: "MONTHLY",
       isActive: true,
-      merchantAddress: "GDEMO_MERCHANT",
-      contractPlanId: id.includes("2") ? 2 : 1,
+      merchantAddress: "GALOSD22UK656K2CP4VP4I45I3GSAZQXSEBFSO6CPZTCLU2QBJXZSZFI",
+      contractPlanId: id.includes("2") ? 1 : 0,
       createdAt: new Date().toISOString(),
     };
   }
@@ -48,6 +50,7 @@ export default function PayPlanPage({
   const address = useWalletStore((s) => s.address);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [txUrl, setTxUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -66,8 +69,10 @@ export default function PayPlanPage({
     setBusy(true);
     setErrorMsg(null);
     setStatus(null);
+    setTxUrl(null);
     try {
-      if (env.app.useMock) {
+      // Fixture plans can still drive real Freighter when contract IDs are configured
+      if (env.app.useMock && !canLiveCheckout()) {
         setStatus(SUBSCRIBE_COPY.mockSuccess);
         announce(SUBSCRIBE_COPY.mockSuccess);
         return;
@@ -79,7 +84,9 @@ export default function PayPlanPage({
       setStatus("Signing subscribe…");
       announce("Signing subscribe transaction");
       const { hash } = await invokeSubscribe(address, onChainId);
-      const ok = `Subscribed. Tx ${hash.slice(0, 10)}…`;
+      const url = getExplorerUrl(hash);
+      setTxUrl(url);
+      const ok = `Subscribed on Testnet · ${hash.slice(0, 10)}…`;
       setStatus(ok);
       announce(ok);
     } catch (err) {
@@ -145,7 +152,22 @@ export default function PayPlanPage({
               </Button>
             )}
             {status && (
-              <p className="text-sm text-sea">{status}</p>
+              <p className="text-sm text-sea">
+                {status}
+                {txUrl && (
+                  <>
+                    {" "}
+                    <a
+                      href={txUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      View on Stellar Expert
+                    </a>
+                  </>
+                )}
+              </p>
             )}
             {errorMsg && (
               <p className="text-sm text-destructive" role="alert">

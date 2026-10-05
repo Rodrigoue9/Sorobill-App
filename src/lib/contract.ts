@@ -203,6 +203,9 @@ export async function invokeApproveToken(
 ): Promise<{ hash: string }> {
   const tokenId = requireTokenContractId();
   const spender = requireSubscriptionContractId();
+  // SAC approve requires expiration_ledger > current ledger
+  const latest = await sorobanServer.getLatestLedger();
+  const expirationLedger = latest.sequence + 200_000;
 
   const { hash } = await prepareSignAndSend(ownerPublicKey, tokenId, (token) =>
     token.call(
@@ -210,7 +213,7 @@ export async function invokeApproveToken(
       Address.fromString(ownerPublicKey).toScVal(),
       Address.fromString(spender).toScVal(),
       toI128Amount(amount, decimals),
-      nativeToScVal(0, { type: "u32" })
+      nativeToScVal(expirationLedger, { type: "u32" })
     )
   );
   return { hash };

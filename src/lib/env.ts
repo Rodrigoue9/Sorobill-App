@@ -21,3 +21,8 @@ export const env = {
   },
   webhookSecret: process.env.NEXT_PUBLIC_WEBHOOK_SECRET ?? "",
 } as const;
+
+/** True when Testnet contract IDs are set — Freighter approve/subscribe can run. */
+export function canLiveCheckout(): boolean {
+  return Boolean(env.contracts.subscription && env.contracts.token);
+}
