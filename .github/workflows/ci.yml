@@ -5,16 +5,52 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: app-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'src/**'
+              - 'app/**'
+              - 'public/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig*.json'
+              - 'next.config.*'
+              - 'postcss.config.*'
+              - 'tailwind.config.*'
+              - 'vitest.config.*'
+              - 'components.json'
+              - '.github/workflows/ci.yml'
+
       - uses: actions/setup-node@v4
+        if: steps.filter.outputs.app == 'true'
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci || npm install
-      - run: npm run build
+
+      - name: Install
+        if: steps.filter.outputs.app == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.filter.outputs.app == 'true'
+        run: npm run build
         env:
           NEXT_PUBLIC_USE_MOCK: "true"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+
+      - name: Docs and metadata only
+        if: steps.filter.outputs.app != 'true'
+        run: echo "No application paths changed; build skipped."
