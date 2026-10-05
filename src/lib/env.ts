@@ -8,9 +8,14 @@ export const env = {
       process.env.NEXT_PUBLIC_STELLAR_PASSPHRASE ?? "Test SDF Network ; September 2015",
   },
   contracts: {
-    subscription: process.env.NEXT_PUBLIC_SUBSCRIPTION_CONTRACT_ID ?? "",
+    subscription:
+      process.env.NEXT_PUBLIC_SUBSCRIPTION_CONTRACT_ID ||
+      "CDENNEELMOUKIJGCSQUQ535FP53KRKNYA2PO7TOCI6O6IZVWZBYFML4W",
     billing: process.env.NEXT_PUBLIC_BILLING_CONTRACT_ID ?? "",
-    token: process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ?? "",
+    // Native XLM SAC on Testnet — used by the public Freighter checkout demo
+    token:
+      process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID ||
+      "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
   },
   app: {
     url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
