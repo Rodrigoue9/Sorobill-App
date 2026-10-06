@@ -3,9 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   isConnected as freighterIsConnected,
-  isAllowed,
   requestAccess,
-  getPublicKey,
   getNetwork,
   signTransaction as freighterSignTransaction,
 } from "@stellar/freighter-api";
@@ -22,6 +20,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
+function readError(value: unknown): string | null {
+  const obj = asRecord(value);
+  if (!obj?.error) return null;
+  const err = obj.error;
+  if (typeof err === "string") return err;
+  const errObj = asRecord(err);
+  return errObj?.message ? String(errObj.message) : String(err);
+}
+
 export function useFreighter() {
   const { setWallet, clearWallet } = useWalletStore();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -33,8 +40,7 @@ export function useFreighter() {
     (async () => {
       try {
         const result = await freighterIsConnected();
-        const obj = asRecord(result);
-        const available = obj ? Boolean(obj.isConnected) : Boolean(result);
+        const available = Boolean(asRecord(result)?.isConnected ?? result);
         if (!cancelled) setIsAvailable(available);
       } catch {
         if (!cancelled) setIsAvailable(false);
@@ -50,30 +56,15 @@ export function useFreighter() {
     setError(null);
     try {
       const connected = await freighterIsConnected();
-      const connectedObj = asRecord(connected);
-      const extensionPresent = connectedObj
-        ? Boolean(connectedObj.isConnected)
-        : Boolean(connected);
-      if (!extensionPresent) {
+      if (!Boolean(asRecord(connected)?.isConnected ?? connected)) {
         throw new Error("Freighter wallet not found. Install the Freighter browser extension.");
       }
 
-      const allowed = await isAllowed();
-      const allowedObj = asRecord(allowed);
-      const hasAccess = allowedObj ? Boolean(allowedObj.isAllowed) : Boolean(allowed);
-      if (!hasAccess) {
-        const access = await requestAccess();
-        const accessObj = asRecord(access);
-        if (accessObj?.error) {
-          throw new Error(String(accessObj.error));
-        }
-      }
-
-      const addressResult = await getPublicKey();
-      const address =
-        typeof addressResult === "string"
-          ? addressResult
-          : String(asRecord(addressResult)?.publicKey ?? asRecord(addressResult)?.address ?? "");
+      // Combines allow-list + address (required so Confirm is enabled on tx prompts)
+      const access = await requestAccess();
+      const accessErr = readError(access);
+      if (accessErr) throw new Error(accessErr);
+      const address = String(asRecord(access)?.address ?? "");
       if (!address) {
         throw new Error("Could not read Freighter public key.");
       }
@@ -104,12 +95,15 @@ export function useFreighter() {
   }, [clearWallet]);
 
   const signTransaction = useCallback(
-    async (xdr: string, networkPassphrase?: string): Promise<string> => {
-      const result = await freighterSignTransaction(xdr, { networkPassphrase });
+    async (xdr: string, networkPassphrase?: string, address?: string): Promise<string> => {
+      const result = await freighterSignTransaction(xdr, {
+        networkPassphrase: networkPassphrase ?? "Test SDF Network ; September 2015",
+        address,
+      });
+      const err = readError(result);
+      if (err) throw new Error(err);
       if (typeof result === "string") return result;
-      const obj = asRecord(result);
-      if (obj?.error) throw new Error(String(obj.error));
-      const signed = obj?.signedTxXdr;
+      const signed = asRecord(result)?.signedTxXdr;
       if (typeof signed !== "string" || !signed) {
         throw new Error("Freighter did not return a signed transaction.");
       }

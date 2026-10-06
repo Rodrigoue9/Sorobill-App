@@ -13,10 +13,33 @@ import {
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import { signTransaction, isAllowed, setAllowed, requestAccess } from "@stellar/freighter-api";
 import { env } from "@/lib/env";
 import { NETWORK_PASSPHRASE, sorobanServer } from "@/lib/stellar";
 import type { BillingInterval, CreatePlanInput } from "@/types";
+
+function freighterErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const err = (value as { error?: unknown }).error;
+  if (!err) return null;
+  if (typeof err === "string") return err;
+  if (typeof err === "object" && err && "message" in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+async function ensureFreighterAllowed(): Promise<void> {
+  const allowed = await isAllowed();
+  const isOk =
+    typeof allowed === "object" && allowed
+      ? Boolean((allowed as { isAllowed?: boolean }).isAllowed)
+      : Boolean(allowed);
+  if (isOk) return;
+  const access = await setAllowed().catch(async () => requestAccess());
+  const err = freighterErrorMessage(access);
+  if (err) throw new Error(err);
+}
 
 export function toI128Amount(amount: string, decimals = 7): xdr.ScVal {
   const [whole = "0", fraction = ""] = amount.split(".");
@@ -73,10 +96,16 @@ export async function prepareSignAndSend(
   }
 
   const prepared = await sorobanServer.prepareTransaction(tx);
+  await ensureFreighterAllowed();
   const signResult = await signTransaction(prepared.toXDR(), {
     networkPassphrase: NETWORK_PASSPHRASE,
-    accountToSign: publicKey,
+    address: publicKey,
   });
+
+  const signErr = freighterErrorMessage(signResult);
+  if (signErr) {
+    throw new Error(signErr);
+  }
 
   const signedXdr =
     typeof signResult === "string"
@@ -84,16 +113,20 @@ export async function prepareSignAndSend(
       : (signResult as { signedTxXdr?: string }).signedTxXdr;
 
   if (!signedXdr) {
-    const err = (signResult as { error?: string })?.error;
     throw new Error(
-      err ??
-        "Freighter did not return signed XDR. Unlock the wallet and approve the prompt."
+      "Freighter did not return signed XDR. Unlock the wallet, allow this site, and approve the prompt."
     );
   }
 
   const sent = await sorobanServer.sendTransaction(
     TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
   );
+
+  if (sent.status === "ERROR") {
+    throw new Error(
+      `Soroban rejected the transaction${sent.errorResult ? `: ${sent.errorResult}` : ""}.`
+    );
+  }
 
   let status = await sorobanServer.getTransaction(sent.hash);
   const started = Date.now();
@@ -111,8 +144,13 @@ export async function prepareSignAndSend(
     throw new Error(`Soroban transaction failed: ${sent.hash}`);
   }
 
-  const result =
-    status.returnValue !== undefined ? scValToNative(status.returnValue) : null;
+  let result: unknown = null;
+  try {
+    result =
+      status.returnValue !== undefined ? scValToNative(status.returnValue) : null;
+  } catch {
+    result = null;
+  }
 
   return { hash: sent.hash, signedXdr, result };
 }

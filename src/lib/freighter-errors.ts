@@ -16,5 +16,11 @@ export function freighterUserMessage(err: unknown): string {
   if (lower.includes("network")) {
     return `${raw} Switch Freighter to Testnet for demos.`;
   }
+  if (lower.includes("bad union switch") || lower.includes("union switch")) {
+    return "Wallet/SDK protocol mismatch. Refresh the page, reconnect Freighter on Testnet, and try again.";
+  }
+  if (lower.includes("not currently connected") || lower.includes("not allowed")) {
+    return "Allow sorobill-app.vercel.app in Freighter, then reconnect and try again.";
+  }
   return raw;
 }
