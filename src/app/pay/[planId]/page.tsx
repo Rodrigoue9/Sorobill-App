@@ -18,10 +18,11 @@ import { SUBSCRIBE_COPY } from "@/lib/subscribe-copy";
 import { networkHint } from "@/lib/network-label";
 import { announce } from "@/lib/a11y";
 import { getExplorerUrl } from "@/lib/stellar";
+import { contractUserMessage } from "@/lib/contract-errors";
 
 async function fetchPlan(id: string): Promise<ApiPlan> {
   if (env.app.useMock) {
-    // Matches on-chain Testnet plan 0 (XLM / monthly) when live checkout is enabled
+    // plan_1 → on-chain plan 1 (fresh Loom demo); plan_2 → plan 0
     return {
       id,
       name: id.includes("2") ? "Pro" : "Starter",
@@ -31,7 +32,7 @@ async function fetchPlan(id: string): Promise<ApiPlan> {
       interval: "MONTHLY",
       isActive: true,
       merchantAddress: "GALOSD22UK656K2CP4VP4I45I3GSAZQXSEBFSO6CPZTCLU2QBJXZSZFI",
-      contractPlanId: id.includes("2") ? 1 : 0,
+      contractPlanId: id.includes("2") ? 0 : 1,
       createdAt: new Date().toISOString(),
     };
   }
@@ -90,7 +91,7 @@ export default function PayPlanPage({
       setStatus(ok);
       announce(ok);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Subscribe failed");
+      setErrorMsg(contractUserMessage(err));
       setStatus(null);
     } finally {
       setBusy(false);
