@@ -22,7 +22,7 @@ import { contractUserMessage } from "@/lib/contract-errors";
 
 async function fetchPlan(id: string): Promise<ApiPlan> {
   if (env.app.useMock) {
-    // plan_1 → on-chain plan 1 (fresh Loom demo); plan_2 → plan 0
+    // plan_1 → on-chain plan 2 (fresh Loom demo Starter)
     return {
       id,
       name: id.includes("2") ? "Pro" : "Starter",
@@ -32,7 +32,7 @@ async function fetchPlan(id: string): Promise<ApiPlan> {
       interval: "MONTHLY",
       isActive: true,
       merchantAddress: "GALOSD22UK656K2CP4VP4I45I3GSAZQXSEBFSO6CPZTCLU2QBJXZSZFI",
-      contractPlanId: id.includes("2") ? 0 : 1,
+      contractPlanId: id.includes("2") ? 1 : 2,
       createdAt: new Date().toISOString(),
     };
   }
