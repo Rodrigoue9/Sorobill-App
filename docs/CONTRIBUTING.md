@@ -7,6 +7,7 @@ Thank you for your interest in contributing! This document covers everything you
 ## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
+- [Quick Start (< 5 Minutes)](#quick-start--5-minutes)
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
 - [Commit Convention](#commit-convention)
@@ -24,6 +25,43 @@ Be respectful. We follow the [Contributor Covenant](https://www.contributor-cove
 
 ---
 
+## Quick Start (< 5 Minutes)
+
+Go from clone to a fully interactive local UI in under 5 minutes:
+
+```bash
+# 1. Clone your fork
+git clone https://github.com/<your-username>/Sorobill-App.git
+cd Sorobill-App
+
+# 2. Configure environment
+cp .env.example .env.local   # or .env.production
+
+# 3. Clean install and launch dev server
+npm ci
+npm run dev
+```
+
+### Mock Mode & Live Demo
+
+- **Default Mock Behavior**: By default, mock mode is active (`NEXT_PUBLIC_USE_MOCK=true` or automatically inferred when contract IDs are omitted in `.env.local`). This allows developers to test onboarding, create plans, explore `/plans`, and walk through `/pay/[planId]` checkout at [http://localhost:3000](http://localhost:3000) without requiring a Freighter wallet or live chain connectivity.
+- **Hosted Production Demo**: Compare local behaviour with the live production deployment at [https://sorobill-app.vercel.app](https://sorobill-app.vercel.app).
+
+### Pre-PR Verification Gate
+
+Before submitting any Pull Request, ensure that tests and production builds pass cleanly:
+
+```bash
+# Run unit test suite
+npm test
+
+# Verify type safety and Next.js production build
+npm run build
+# or run full gate: npm run verify
+```
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -31,20 +69,6 @@ Be respectful. We follow the [Contributor Covenant](https://www.contributor-cove
 - Node.js ≥ 18
 - npm ≥ 9
 - Git
-
-### Setup
-
-```bash
-# Fork the repo on GitHub, then:
-git clone https://github.com/<your-username>/sorobill-app.git
-cd Sorobill-App
-
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-The app runs at [http://localhost:3000](http://localhost:3000) with mock data — no wallet or contract required.
 
 ---
 

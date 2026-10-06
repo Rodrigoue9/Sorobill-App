@@ -222,7 +222,9 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for a deeper dive into design decisi
 
 We welcome contributions of all kinds — bug fixes, features, docs, and tests.
 
-Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) before opening a PR.
+- **5-Minute Quick Start**: Jump in right away with mock mode via the [Quick Start Guide in CONTRIBUTING.md](docs/CONTRIBUTING.md#quick-start--5-minutes).
+- **Pre-PR Quality Gate**: Always ensure `npm test` and `npm run build` (or `npm run verify`) pass cleanly before opening a pull request.
+- Read the full [CONTRIBUTING.md](docs/CONTRIBUTING.md) guide for details on development workflow, code conventions, and architecture.
 
 ---
 
