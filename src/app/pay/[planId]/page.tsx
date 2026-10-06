@@ -22,17 +22,23 @@ import { contractUserMessage } from "@/lib/contract-errors";
 
 async function fetchPlan(id: string): Promise<ApiPlan> {
   if (env.app.useMock) {
-    // plan_1 → on-chain plan 2 (fresh Loom demo Starter)
+    // Keep in sync with /plans mock list — plan_1 is the Loom Starter demo
+    const catalog: Record<string, Pick<ApiPlan, "name" | "amount" | "contractPlanId">> = {
+      plan_1: { name: "Starter", amount: "9.99", contractPlanId: 3 },
+      plan_2: { name: "Pro", amount: "29.99", contractPlanId: 2 },
+      plan_3: { name: "Enterprise", amount: "99.99", contractPlanId: 1 },
+    };
+    const row = catalog[id] ?? catalog.plan_1;
     return {
       id,
-      name: id.includes("2") ? "Pro" : "Starter",
+      name: row.name,
       description: "Recurring payment settled on Stellar Soroban.",
-      amount: id.includes("2") ? "29.99" : "9.99",
+      amount: row.amount,
       assetCode: "XLM",
       interval: "MONTHLY",
       isActive: true,
       merchantAddress: "GALOSD22UK656K2CP4VP4I45I3GSAZQXSEBFSO6CPZTCLU2QBJXZSZFI",
-      contractPlanId: id.includes("2") ? 1 : 2,
+      contractPlanId: row.contractPlanId,
       createdAt: new Date().toISOString(),
     };
   }
@@ -79,15 +85,15 @@ export default function PayPlanPage({
         return;
       }
       const approveAmount = String(Number(data.amount) * 12);
-      setStatus("Approving token allowance…");
+      setStatus(`Approving allowance for on-chain plan ${onChainId}…`);
       announce("Approving token allowance");
-      await invokeApproveToken(address, approveAmount);
-      setStatus("Signing subscribe…");
+      const approve = await invokeApproveToken(address, approveAmount);
+      setStatus(`Allowance set · ${approve.hash.slice(0, 10)}… Signing subscribe…`);
       announce("Signing subscribe transaction");
       const { hash } = await invokeSubscribe(address, onChainId);
       const url = getExplorerUrl(hash);
       setTxUrl(url);
-      const ok = `Subscribed on Testnet · ${hash.slice(0, 10)}…`;
+      const ok = `Subscribed on Testnet (plan ${onChainId}) · ${hash.slice(0, 10)}…`;
       setStatus(ok);
       announce(ok);
     } catch (err) {
